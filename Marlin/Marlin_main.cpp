@@ -526,14 +526,7 @@ void get_command()
       if(!comment_mode){
         comment_mode = false; //for new command
         fromsd[bufindw] = false;
-
-        //Turnkey - Changed <=6 to <=8 to allow up to 999999 lines of raster data to be transmitted per raster node
-        //This area needs improving for stability.
-        if(  (strstr_P(cmdbuffer[bufindw], PSTR("G7")) == NULL && strchr(cmdbuffer[bufindw], 'N') != NULL) || //For non G7 commands, run as normal.
-            ((strstr_P(cmdbuffer[bufindw], PSTR("G7")) != NULL) &&
-            ((strstr_P(cmdbuffer[bufindw], PSTR("G7")) - strchr(cmdbuffer[bufindw], 'N')  <=8 ) &&
-            (strstr_P(cmdbuffer[bufindw], PSTR("G7")) - strchr(cmdbuffer[bufindw], 'N')  >0 )))
-          )
+        if(strchr(cmdbuffer[bufindw], 'N') != NULL)
         {
           strchr_pointer = strchr(cmdbuffer[bufindw], 'N');
           gcode_N = (strtol(&cmdbuffer[bufindw][strchr_pointer - cmdbuffer[bufindw] + 1], NULL, 10));
@@ -799,12 +792,6 @@ static void homeaxis(int axis) {
     has_axis_homed[axis] = true;
     current_position[axis] = 0;
     #ifdef MUVE_Z_PEEL
-
-      if (axis == Z_AXIS) {
-        has_axis_homed[E_AXIS] = true;
-        current_position[E_AXIS] = 0;
-      }
-
       plan_set_position(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[Z_AXIS]);
       destination[axis] = 1.5 * max_length(axis) * axis_home_dir;
       feedrate = homing_feedrate[axis];
@@ -914,47 +901,13 @@ void process_commands()
     case 2: // G2  - CW ARC
       if(Stopped == false) {
         get_arc_coordinates();
-        
-        #ifdef LASER_FIRE_G1
-          if (code_seen('S') && !IsStopped()) laser.intensity = (float) code_value();
-          if (code_seen('L') && !IsStopped()) laser.duration = (unsigned long) labs(code_value());
-          if (code_seen('P') && !IsStopped()) laser.ppm = (float) code_value();
-          if (code_seen('D') && !IsStopped()) laser.diagnostics = (bool) code_value();
-          if (code_seen('B') && !IsStopped()) laser_set_mode((int) code_value());
-
-          laser.status = LASER_ON;
-          laser.fired = LASER_FIRE_G1;
-        #endif // LASER_FIRE_G1
-        
         prepare_arc_move(true);
-        
-        #ifdef LASER_FIRE_G1
-          laser.status = LASER_OFF;
-        #endif // LASER_FIRE_G1
-        
         return;
       }
     case 3: // G3  - CCW ARC
       if(Stopped == false) {
         get_arc_coordinates();
-        
-        #ifdef LASER_FIRE_G1
-          if (code_seen('S') && !IsStopped()) laser.intensity = (float) code_value();
-          if (code_seen('L') && !IsStopped()) laser.duration = (unsigned long) labs(code_value());
-          if (code_seen('P') && !IsStopped()) laser.ppm = (float) code_value();
-          if (code_seen('D') && !IsStopped()) laser.diagnostics = (bool) code_value();
-          if (code_seen('B') && !IsStopped()) laser_set_mode((int) code_value());
-
-          laser.status = LASER_ON;
-          laser.fired = LASER_FIRE_G1;
-        #endif // LASER_FIRE_G1
-        
         prepare_arc_move(false);
-        
-        #ifdef LASER_FIRE_G1
-          laser.status = LASER_OFF;
-        #endif // LASER_FIRE_G1
-        
         return;
       }
     case 4: // G4 dwell
@@ -1076,7 +1029,7 @@ void process_commands()
     #ifdef LASER_RASTER
     case 7: //G7 Execute raster line
       if (code_seen('L')) laser.raster_raw_length = int(code_value());
-	  if (code_seen('$')) {
+	  if (code_seen('N')) {
 		laser.raster_direction = (bool)code_value();
 		destination[Y_AXIS] = current_position[Y_AXIS] + (laser.raster_mm_per_pulse * laser.raster_aspect_ratio); // increment Y axis
 	  }
@@ -1094,10 +1047,8 @@ void process_commands()
           SERIAL_ECHOLN("Positive Raster Line");
         }
 	  }
-	  
-	  laser.ppm = 1 / laser.raster_mm_per_pulse; //number of pulses per millimetre
-	  laser.duration = (1000000 / ( feedrate / 60)) / laser.ppm; // (1 second in microseconds / (time to move 1mm in microseconds)) / (pulses per mm) = Duration of pulse, taking into account feedrate as speed and ppm
-	  
+	  laser.ppm = 1 / laser.raster_mm_per_pulse;
+	  laser.duration = labs(1 / (feedrate * laser.ppm) * 1000000);
 	  laser.mode = RASTER;
 	  laser.status = LASER_ON;
 	  laser.fired = RASTER;
@@ -1121,7 +1072,7 @@ void process_commands()
       }
 
       break;
-    case 11: // G11 retract_recover
+    case 11: // G10 retract_recover
       if(!retracted)
       {
         destination[X_AXIS]=current_position[X_AXIS];
@@ -1362,14 +1313,10 @@ void process_commands()
           
       laser.status = LASER_ON;
       laser.fired = LASER_FIRE_SPINDLE;      
-//*=*=*=*=*=*
-          lcd_update();
-    
       prepare_move();
       break;
     case 5:  //M5 stop firing laser
 	  laser.status = LASER_OFF;
-          lcd_update();
 	  prepare_move();
       break;
 #endif // LASER_FIRE_SPINDLE
@@ -2428,20 +2375,11 @@ void process_commands()
 	#ifdef LASER
 	case 649: // M649 set laser options
 	{
-	  if (code_seen('S') && !IsStopped()) {
-          laser.intensity = (float) code_value();
-          laser.rasterlaserpower =  laser.intensity;
-      }
+	  if (code_seen('S') && !IsStopped()) laser.intensity = (float) code_value();
       if (code_seen('L') && !IsStopped()) laser.duration = (unsigned long) labs(code_value());
       if (code_seen('P') && !IsStopped()) laser.ppm = (float) code_value();
       if (code_seen('D') && !IsStopped()) laser.diagnostics = (bool) code_value();
       if (code_seen('B') && !IsStopped()) laser_set_mode((int) code_value());
-      if (code_seen('R') && !IsStopped()) laser.raster_mm_per_pulse = ((float) code_value());
-      if (code_seen('F')) {
-        next_feedrate = code_value();
-        if(next_feedrate > 0.0) feedrate = next_feedrate;
-      }
-      
 	}
 	break;
 	#endif // LASER
