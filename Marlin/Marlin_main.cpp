@@ -143,8 +143,8 @@
 // M503 - print the current settings (from memory not from eeprom)
 // M540 - Use S[0|1] to enable or disable the stop SD card print on endstop hit (requires ABORT_ON_ENDSTOP_HIT_FEATURE_ENABLED)
 // M600 - Pause for filament change X[pos] Y[pos] Z[relative lift] E[initial retract] L[later retract distance for removal]
-// M649 - 
-// M650 - 
+// M649 -
+// M650 -
 // M666 - set delta endstop adjustemnt
 // M605 - Set dual x-carriage movement mode: S<mode> [ X<duplication x-offset> R<duplication temp offset> ]
 // M907 - Set digital trimpot motor current using axis codes.
@@ -901,13 +901,47 @@ void process_commands()
     case 2: // G2  - CW ARC
       if(Stopped == false) {
         get_arc_coordinates();
+
+        #ifdef LASER_FIRE_G1
+          if (code_seen('S') && !IsStopped()) laser.intensity = (float) code_value();
+          if (code_seen('L') && !IsStopped()) laser.duration = (unsigned long) labs(code_value());
+          if (code_seen('P') && !IsStopped()) laser.ppm = (float) code_value();
+          if (code_seen('D') && !IsStopped()) laser.diagnostics = (bool) code_value();
+          if (code_seen('B') && !IsStopped()) laser_set_mode((int) code_value());
+
+          laser.status = LASER_ON;
+          laser.fired = LASER_FIRE_G1;
+        #endif // LASER_FIRE_G1
+
         prepare_arc_move(true);
+
+        #ifdef LASER_FIRE_G1
+          laser.status = LASER_OFF;
+        #endif // LASER_FIRE_G1
+
         return;
       }
     case 3: // G3  - CCW ARC
       if(Stopped == false) {
         get_arc_coordinates();
+
+        #ifdef LASER_FIRE_G1
+          if (code_seen('S') && !IsStopped()) laser.intensity = (float) code_value();
+          if (code_seen('L') && !IsStopped()) laser.duration = (unsigned long) labs(code_value());
+          if (code_seen('P') && !IsStopped()) laser.ppm = (float) code_value();
+          if (code_seen('D') && !IsStopped()) laser.diagnostics = (bool) code_value();
+          if (code_seen('B') && !IsStopped()) laser_set_mode((int) code_value());
+
+          laser.status = LASER_ON;
+          laser.fired = LASER_FIRE_G1;
+        #endif // LASER_FIRE_G1
+
         prepare_arc_move(false);
+
+        #ifdef LASER_FIRE_G1
+          laser.status = LASER_OFF;
+        #endif // LASER_FIRE_G1
+        
         return;
       }
     case 4: // G4 dwell
@@ -947,14 +981,14 @@ void process_commands()
 	  // control point 1
 	  if(code_seen('I')) p[1][0] = (float)code_value() + (axis_relative_modes[0] || relative_mode)*current_position[0];
 	  if(code_seen('J')) p[1][1] = (float)code_value() + (axis_relative_modes[1] || relative_mode)*current_position[1];
- 
+
 	  // control point 2
 	  if(code_seen('K')) p[2][0] = (float)code_value() + (axis_relative_modes[0] || relative_mode)*current_position[0];
 	  if(code_seen('L')) p[2][1] = (float)code_value() + (axis_relative_modes[1] || relative_mode)*current_position[1];
 	  // end point
 	  if(code_seen(axis_codes[0])) p[3][0] = (float)code_value() + (axis_relative_modes[0] || relative_mode)*current_position[0];
 	  if(code_seen(axis_codes[1])) p[3][1] = (float)code_value() + (axis_relative_modes[1] || relative_mode)*current_position[1];
- 
+
 	  #ifdef DEBUG
 		log_float("CX", p[0][0]);
 		log_float("CY", p[0][1]);
@@ -990,7 +1024,7 @@ void process_commands()
 		fd[i] = 3 * (p[1][i] - p[0][i]) * t;
 		fdd_per_2[i] = 3 * (p[0][i] - 2 * p[1][i] + p[2][i]) * temp;
 		fddd_per_2[i] = 3 * (3 * (p[1][i] - p[2][i]) + p[3][i] - p[0][i]) * temp * t;
- 
+
 		fddd[i] = fddd_per_2[i] + fddd_per_2[i];
 		fdd[i] = fdd_per_2[i] + fdd_per_2[i];
 		fddd_per_6[i] = (fddd_per_2[i] * (1.0 / 3));
@@ -1010,7 +1044,7 @@ void process_commands()
 		#endif
 	  prepare_move();
 	  previous_millis_cmd = millis();
- 
+
 	  // update f
 	  for (int i=0; i<2; i++) {
 		f[i] = f[i] + fd[i] + fdd_per_2[i] + fddd_per_6[i];
@@ -1310,9 +1344,9 @@ void process_commands()
       if (code_seen('P') && !IsStopped()) laser.ppm = (float) code_value();
       if (code_seen('D') && !IsStopped()) laser.diagnostics = (bool) code_value();
       if (code_seen('B') && !IsStopped()) laser_set_mode((int) code_value());
-          
+
       laser.status = LASER_ON;
-      laser.fired = LASER_FIRE_SPINDLE;      
+      laser.fired = LASER_FIRE_SPINDLE;
       prepare_move();
       break;
     case 5:  //M5 stop firing laser
@@ -2987,7 +3021,7 @@ void kill()
   #ifdef LASER
     laser_init();
   #endif // LASER
-  
+
   #ifdef LASER_PERIPHERALS
     laser_peripherals_off();
   #endif // LASER_PERIPHERALS
@@ -3119,4 +3153,3 @@ bool setTargetedHotend(int code){
   }
   return false;
 }
-
