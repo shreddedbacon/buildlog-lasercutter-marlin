@@ -45,7 +45,8 @@ int base64_decode(unsigned char *output, char *input, int inputLen);
  * 			2. input must not be null
  * 			3. inputLen must be greater than or equal to 0
  */
-int base64_decode(char *output, char *input, int inputLen);
+//int base64_decode(char *output, char *input, int inputLen);
+int base64_decode(unsigned char *output, char *input, int inputLen);
 
 /* base64_enc_len:
  * 		Description:
