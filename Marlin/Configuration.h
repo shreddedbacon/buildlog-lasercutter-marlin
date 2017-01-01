@@ -91,7 +91,8 @@
 //// Raster mode enables the laser to etch bitmap data at high speeds.  Increases command buffer size substantially.
 #define LASER_RASTER
 #define LASER_MAX_RASTER_LINE 68 // maximum number of base64 encoded pixels per raster gcode command
-#define LASER_RASTER_ASPECT_RATIO 1.33 // pixels aren't square on most displays, 1.33 == 4:3 aspect ratio
+//#define LASER_RASTER_ASPECT_RATIO 1.33 // pixels aren't square on most displays, 1.33 == 4:3 aspect ratio
+#define LASER_RASTER_ASPECT_RATIO 1 // pixels aren't square on most displays, 1.33 == 4:3 aspect ratio
 #define LASER_RASTER_MM_PER_PULSE 0.2
 
 //// Uncomment the following if the laser cutter is equipped with a peripheral relay board
@@ -113,7 +114,8 @@
 #define CUSTOM_MENDEL_NAME "Laser Cutter"
 #define LASER_WATTS 40.0
 #define LASER_DIAMETER 0.1 // milimeters
-#define LASER_PWM 25000 // hertz
+//#define LASER_PWM 25000 // hertz
+#define LASER_PWM 50000 // hertz
 //#define LASER_FOCAL_HEIGHT 74.50 // z axis position at which the laser is focused
 #define LASER_FOCAL_HEIGHT 40 // z axis position at which the laser is focused
 

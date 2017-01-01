@@ -683,12 +683,32 @@ block->steps_y = labs((target[X_AXIS]-position[X_AXIS]) - (target[Y_AXIS]-positi
     block->laser_duration = laser.duration;
     block->laser_status = laser.status;
     block->laser_mode = laser.mode;
-    
+
     // When operating in PULSED or RASTER modes, laser pulsing must operate in sync with movement.
     // Calculate steps between laser firings (steps_l) and consider that when determining largest
     // interval between steps for X, Y, Z, E, L to feed to the motion control code.
-    if (laser.mode == PULSED or laser.mode == RASTER) {
+    /*if (laser.mode == PULSED or laser.mode == RASTER) {
       block->steps_l = labs(block->millimeters*laser.ppm);
+      */
+      if (laser.mode == RASTER || laser.mode == PULSED) {
+          block->steps_l = labs(block->millimeters*laser.ppm);
+      	  for (int i = 0; i < LASER_MAX_RASTER_LINE; i++) {
+          //Scale the image intensity based on the raster power.
+			//100% power on a pixel basis is 255, convert back to 255 = 100.
+
+			//http://stackoverflow.com/questions/929103/convert-a-number-range-to-another-range-maintaining-ratio
+			int OldRange, NewRange;
+			float NewValue;
+			OldRange = (255 - 0);
+			NewRange = (laser.rasterlaserpower - 7); //7% power on my unit outputs hardly any noticable burn at F3000 on paper, so adjust the raster contrast based off 7 being the lower. 7 still produces burns at slower feed rates, but getting less power than this isn't typically needed at slow feed rates.
+			NewValue = (float)(((((float)laser.raster_data[i] - 0) * NewRange) / OldRange) + 7);
+
+			//If less than 7%, turn off the laser tube.
+			if(NewValue == 7)
+				NewValue = 0;
+
+            block->laser_raster_data[i] = NewValue;
+         }
     } else {
       block->steps_l = 0;
     }

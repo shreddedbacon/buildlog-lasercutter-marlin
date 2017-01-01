@@ -371,6 +371,7 @@ static void lcd_implementation_status_screen()
 	lcd.setCursor(0, 0);
 	lcd.print("Laser Power: ");
 	lcd.print(itostr3(int(laser.intensity)));
+  lcd.print(itostr3(int(laser.status)));
 #else
     int tHotend=int(degHotend(0) + 0.5);
     int tTarget=int(degTargetHotend(0) + 0.5);
@@ -464,8 +465,15 @@ static void lcd_implementation_status_screen()
 #  endif//EXTRUDERS > 1 || TEMP_SENSOR_BED != 0
 # endif//LCD_WIDTH > 19
     lcd.setCursor(LCD_WIDTH - 8, 1);
+#if TEMP_SENSOR_0 > 0
+    lcd.print('T');
+    lcd.setCursor(LCD_WIDTH - 7, 1);
+    lcd.print('=');
+    lcd.print(ftostr32(current_temperature[0]));
+#else
     lcd.print('Z');
     lcd.print(ftostr32(current_position[Z_AXIS]));
+#endif
 #endif//LCD_HEIGHT > 2
 
 #if LCD_HEIGHT > 3
