@@ -1,31 +1,25 @@
-==========================
-Marlin 3D Printer Firmware
-==========================
+============================================
+Turnkey K40 Laser Firmware (Based on Marlin)
+============================================
 Marlin has a GPL license because I believe in open development.
-Please do not use this code in products (3D printers, CNC etc) that are closed source or are crippled by a patent.
-
-[![Flattr this git repo](http://api.flattr.com/button/flattr-badge-large.png)](https://flattr.com/submit/auto?user_id=ErikZalm&url=https://github.com/ErikZalm/Marlin&title=Marlin&language=&tags=github&category=software)
+Please do not use this code in products (Laser cutters) that are closed source or are crippled by a patent.
 
 Quick Information
 ===================
-This RepRap firmware is a mashup between <a href="https://github.com/kliment/Sprinter">Sprinter</a>, <a href="https://github.com/simen/grbl/tree">grbl</a> and many original parts.
-
-Derived from Sprinter and Grbl by Erik van der Zalm.
-Sprinters lead developers are Kliment and caru.
-Grbls lead developer is Simen Svale Skogsrud. Sonney Jeon (Chamnit) improved some parts of grbl
-A fork by bkubicek for the Ultimaker was merged, and further development was aided by him.
-Some features have been added by:
-Lampmaker, Bradley Feldman, and others...
-
+This firmware is based off Marlin for 3D printers, for more info see https://github.com/MarlinFirmware/Marlin
 
 Features:
 
+*   Design in Inkscape, export to GCode, print!
+*   Raster image support, set your own max power level and have all pixel data appropriately shifted for intensity. Defaults to 270dpi
+*   Set your own feed rate in mm per minute.
+*   Vector cutting of lines and arcs at your given power level.
+*   Pulse Per Millimetre cutting of vector lines at your own ppm rate and power - defaults to 60us pulses.
+
+Stock Marlin Features:
 *   Interrupt based movement with real linear acceleration
 *   High steprate
 *   Look ahead (Keep the speed high when possible. High cornering speed)
-*   Interrupt based temperature protection
-*   preliminary support for Matthew Roberts advance algorithm
-    For more info see: http://reprap.org/pipermail/reprap-dev/2011-May/003323.html
 *   Full endstop support
 *   SD Card support
 *   SD Card folders (works in pronterface)
@@ -49,48 +43,6 @@ Features:
 *   Automatic operation of extruder/cold-end cooling fans based on nozzle temperature
 *   RC Servo Support, specify angle or duration for continuous rotation servos.
 
-The default baudrate is 250000. This baudrate has less jitter and hence errors than the usual 115200 baud, but is less supported by drivers and host-environments.
-
-
-Differences and additions to the already good Sprinter firmware:
-================================================================
-
-*Look-ahead:*
-
-Marlin has look-ahead. While sprinter has to break and re-accelerate at each corner,
-lookahead will only decelerate and accelerate to a velocity,
-so that the change in vectorial velocity magnitude is less than the xy_jerk_velocity.
-This is only possible, if some future moves are already processed, hence the name.
-It leads to less over-deposition at corners, especially at flat angles.
-
-*Arc support:*
-
-Slic3r can find curves that, although broken into segments, were ment to describe an arc.
-Marlin is able to print those arcs. The advantage is the firmware can choose the resolution,
-and can perform the arc with nearly constant velocity, resulting in a nice finish.
-Also, less serial communication is needed.
-
-*Temperature Oversampling:*
-
-To reduce noise and make the PID-differential term more useful, 16 ADC conversion results are averaged.
-
-*AutoTemp:*
-
-If your gcode contains a wide spread of extruder velocities, or you realtime change the building speed, the temperature should be changed accordingly.
-Usually, higher speed requires higher temperature.
-This can now be performed by the AutoTemp function
-By calling M109 S<mintemp> T<maxtemp> F<factor> you enter the autotemp mode.
-
-You can leave it by calling M109 without any F.
-If active, the maximal extruder stepper rate of all buffered moves will be calculated, and named "maxerate" [steps/sec].
-The wanted temperature then will be set to t=tempmin+factor*maxerate, while being limited between tempmin and tempmax.
-If the target temperature is set manually or by gcode to a value less then tempmin, it will be kept without change.
-Ideally, your gcode can be completely free of temperature controls, apart from a M109 S T F in the start.gcode, and a M109 S0 in the end.gcode.
-
-*EEPROM:*
-
-If you know your PID values, the acceleration and max-velocities of your unique machine, you can set them, and finally store them in the EEPROM.
-After each reboot, it will magically load them from EEPROM, independent what your Configuration.h says.
 
 *LCD Menu:*
 
@@ -116,31 +68,16 @@ If an endstop is hit while moving towards the endstop, the location at which the
 This is useful, because the user gets a warning message.
 However, also tools like QTMarlin can use this for finding acceptable combinations of velocity+acceleration.
 
-*Coding paradigm:*
-
-Not relevant from a user side, but Marlin was split into thematic junks, and has tried to partially enforced private variables.
-This is intended to make it clearer, what interacts which what, and leads to a higher level of modularization.
-We think that this is a useful prestep for porting this firmware to e.g. an ARM platform in the future.
-A lot of RAM (with enabled LCD ~2200 bytes) was saved by storing char []="some message" in Program memory.
-In the serial communication, a #define based level of abstraction was enforced, so that it is clear that
-some transfer is information (usually beginning with "echo:"), an error "error:", or just normal protocol,
-necessary for backwards compatibility.
-
-*Interrupt based temperature measurements:*
-
-An interrupt is used to manage ADC conversions, and enforce checking for critical temperatures.
-This leads to less blocking in the heater management routine.
 
 Implemented G Codes:
 ====================
 
-*  G0  -> G1
-*  G1  - Coordinated Movement X Y Z E
-*  G2  - CW ARC
-*  G3  - CCW ARC
+*  G0  -> Go to a coordinate with laser not firing
+*  G1  - Coordinated Movement X Y Z E with laser firing
+*  G2  - CW ARC with laser firing
+*  G3  - CCW ARC with laser firing
 *  G4  - Dwell S<seconds> or P<milliseconds>
-*  G10 - retract filament according to settings of M207
-*  G11 - retract recover filament according to settings of M208
+*  G7  - Raster data in base64 encoding. For more info see https://github.com/TurnkeyTyranny/laser-gcode-exporter-inkscape-plugin
 *  G28 - Home all Axis
 *  G90 - Use Absolute Coordinates
 *  G91 - Use Relative Coordinates
@@ -149,6 +86,7 @@ Implemented G Codes:
 M Codes
 *  M0   - Unconditional stop - Wait for user to press a button on the LCD (Only if ULTRA_LCD is enabled)
 *  M1   - Same as M0
+*  M5   - Stop firing the laser immediately.
 *  M17  - Enable/Power all stepper motors
 *  M18  - Disable all stepper motors; same as M84
 *  M20  - List SD card
@@ -247,8 +185,4 @@ Click the Verify/Compile button
 Click the Upload button
 If all goes well the firmware is uploading
 
-That's ok.  Enjoy Silky Smooth Printing.
-
-
-
-
+Burn your eyeballs out!
